@@ -28,6 +28,7 @@ import com.alibaba.csp.sentinel.spi.Spi;
 
 /**
  * A {@link ProcessorSlot} that dedicates to {@link AuthorityRule} checking.
+ * 根据配置的黑白名单和调用来源信息，来做黑白名单控制
  *
  * @author leyou
  * @author Eric Zhao
@@ -54,12 +55,15 @@ public class AuthoritySlot extends AbstractLinkedProcessorSlot<DefaultNode> {
             return;
         }
 
+        // 根据资源名称获取相应的规则
         Set<AuthorityRule> rules = authorityRules.get(resource.getName());
         if (rules == null) {
             return;
         }
 
         for (AuthorityRule rule : rules) {
+            // 黑名单白名单验证
+            // 只要有一条规则校验不通过，就抛出AuthorityException
             if (!AuthorityRuleChecker.passCheck(rule, context)) {
                 throw new AuthorityException(context.getOrigin(), rule);
             }

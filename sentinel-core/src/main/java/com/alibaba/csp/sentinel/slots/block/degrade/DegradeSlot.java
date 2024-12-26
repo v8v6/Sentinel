@@ -30,6 +30,7 @@ import com.alibaba.csp.sentinel.spi.Spi;
 
 /**
  * A {@link ProcessorSlot} dedicates to circuit breaking.
+ * 通过统计信息以及预设的规则，来做熔断降级
  *
  * @author Carpenter Lee
  * @author Eric Zhao

@@ -18,6 +18,8 @@ package com.alibaba.csp.sentinel.slots.statistic.base;
 /**
  * Wrapper entity class for a period of time window.
  *
+ * 每一个滑动窗口的包装类，其内部的数据结构用 MetricBucket 表示。
+ *
  * @param <T> data type
  * @author jialiang.linjl
  * @author Eric Zhao
@@ -26,16 +28,19 @@ public class WindowWrap<T> {
 
     /**
      * Time length of a single window bucket in milliseconds.
+     * 单个窗口的时间长度（毫秒）
      */
     private final long windowLengthInMs;
 
     /**
      * Start timestamp of the window in milliseconds.
+     * 窗口的开始时间戳（毫秒）
      */
     private long windowStart;
 
     /**
      * Statistic data.
+     * 统计数据
      */
     private T value;
 
@@ -79,12 +84,14 @@ public class WindowWrap<T> {
 
     /**
      * Check whether given timestamp is in current bucket.
+     * 判断某个时间戳在没在这个窗口内
      *
      * @param timeMillis valid timestamp in ms
      * @return true if the given time is in current bucket, otherwise false
      * @since 1.5.0
      */
     public boolean isTimeInWindow(long timeMillis) {
+        // 窗口开始时间戳 <= 时间戳 <= 窗口开始时间戳 + 窗口长度
         return windowStart <= timeMillis && timeMillis < windowStart + windowLengthInMs;
     }
 

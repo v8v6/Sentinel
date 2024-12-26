@@ -21,17 +21,22 @@ import java.util.concurrent.atomic.LongAdder;
 
 /**
  * Represents metrics data in a period of time span.
+ * 窗口内的统计指标
+ * 指标桶，例如通过数量、阻塞数量、异常数量、成功数量、响应时间，已通过未来配额（抢占下一个滑动窗口的数量）。
  *
  * @author jialiang.linjl
  * @author Eric Zhao
  */
 public class MetricBucket {
 
+    // 存储各事件的计数，比如异常总数、请求总数等
     private final LongAdder[] counters;
 
+    // 最小响应时间
     private volatile long minRt;
 
     public MetricBucket() {
+        // 创建各个事件
         MetricEvent[] events = MetricEvent.values();
         this.counters = new LongAdder[events.length];
         for (MetricEvent event : events) {
@@ -66,10 +71,23 @@ public class MetricBucket {
         return this;
     }
 
+    /**
+     * 获取事件类型对应的总数
+     *
+     * @param event
+     * @return
+     */
     public long get(MetricEvent event) {
         return counters[event.ordinal()].sum();
     }
 
+    /**
+     * 累加事件类型对应的总数
+     *
+     * @param event
+     * @param n
+     * @return
+     */
     public MetricBucket add(MetricEvent event, long n) {
         counters[event.ordinal()].add(n);
         return this;

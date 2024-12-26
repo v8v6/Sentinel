@@ -58,16 +58,19 @@ public class Context {
 
     /**
      * Context name.
+     * 默认 sentinel_default_context
      */
     private final String name;
 
     /**
      * The entrance node of current invocation tree.
+     * context入口节点
      */
     private DefaultNode entranceNode;
 
     /**
      * Current processing entry.
+     * context当前entry，Context生命周期中可能有多个Entry，所有curEntry会有变化
      */
     private Entry curEntry;
 
@@ -177,6 +180,11 @@ public class Context {
      * @return the parent node of the current.
      */
     public Node getLastNode() {
+        // 如果curEntry不存在时，返回entranceNode
+        // 否则返回curEntry的lastNode，
+        // 需要注意的是curEntry的lastNode是获取的parent的curNode，
+        // 如果每次进入的资源不同，就会每次都创建一个CtEntry，则parent为null，
+        // 所以curEntry.getLastNode()也为null
         if (curEntry != null && curEntry.getLastNode() != null) {
             return curEntry.getLastNode();
         } else {

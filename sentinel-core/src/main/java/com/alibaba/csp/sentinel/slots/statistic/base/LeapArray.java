@@ -33,6 +33,8 @@ import com.alibaba.csp.sentinel.util.TimeUtil;
  * {@code sampleCount = intervalInMs / windowLengthInMs}.
  * </p>
  *
+ * 滑动窗口顶层数据结构，包含一个一个的窗口数据。
+ *
  * @param <T> type of statistic data
  * @author jialiang.linjl
  * @author Eric Zhao
@@ -40,11 +42,16 @@ import com.alibaba.csp.sentinel.util.TimeUtil;
  */
 public abstract class LeapArray<T> {
 
+    // 窗口长度
     protected int windowLengthInMs;
+    // 样本(窗口)个数
     protected int sampleCount;
+    // 总时间间隔 ms
     protected int intervalInMs;
+    // 总时间间隔 s
     private double intervalInSecond;
 
+    // 滑动窗口的数组，滑动窗口类型为 WindowWrap<MetricBucket>
     protected final AtomicReferenceArray<WindowWrap<T>> array;
 
     /**
@@ -63,9 +70,13 @@ public abstract class LeapArray<T> {
         AssertUtil.isTrue(intervalInMs > 0, "total time interval of the sliding window should be positive");
         AssertUtil.isTrue(intervalInMs % sampleCount == 0, "time span needs to be evenly divided");
 
+        // 窗口大小
         this.windowLengthInMs = intervalInMs / sampleCount;
+        // 总时间间隔
         this.intervalInMs = intervalInMs;
+
         this.intervalInSecond = intervalInMs / 1000.0;
+        // 样本(窗口)个数
         this.sampleCount = sampleCount;
 
         this.array = new AtomicReferenceArray<>(sampleCount);
@@ -97,18 +108,40 @@ public abstract class LeapArray<T> {
      */
     protected abstract WindowWrap<T> resetWindowTo(WindowWrap<T> windowWrap, long startTime);
 
+    /**
+     * 根据时间戳获取时间窗口的索引
+     *
+     * @param timeMillis
+     * @return
+     */
     private int calculateTimeIdx(/*@Valid*/ long timeMillis) {
+        // 将当前时间戳减去毫秒部分，得到当前的秒数
         long timeId = timeMillis / windowLengthInMs;
         // Calculate current index so we can map the timestamp to the leap array.
+        // 将得到的秒数与数组长度取余数，就能得到当前时间窗口的 Bucket 在数组中的位置（索引）。
         return (int)(timeId % array.length());
     }
 
+    /**
+     * 计算时间窗口开始时间戳
+     *
+     * @param timeMillis
+     * @return
+     */
     protected long calculateWindowStart(/*@Valid*/ long timeMillis) {
+        // timeMillis % windowLengthInMs
+        // 计算的是 timeMillis 在当前窗口内的偏移量，即 timeMillis 超过当前窗口起始时间的部分
+        // timeMillis - 偏移量
+        // 将 timeMillis 减去偏移量，得到当前窗口的起始时间戳。
+        // windowLengthInMs = 5000，timeMillis = 12345
+        // 偏移量 = 12345 % 5000 = 2345
+        // 起始时间戳 = 12345 - 2345 = 10000
         return timeMillis - timeMillis % windowLengthInMs;
     }
 
     /**
      * Get bucket item at provided timestamp.
+     * 根据时间戳获取 bucket
      *
      * @param timeMillis a valid timestamp in milliseconds
      * @return current bucket item at provided timestamp if the time is valid; null if time is invalid
@@ -118,8 +151,10 @@ public abstract class LeapArray<T> {
             return null;
         }
 
+        // 获取时间戳映射到的数组索引
         int idx = calculateTimeIdx(timeMillis);
         // Calculate current bucket start time.
+        // 计算 bucket 时间窗口的开始时间
         long windowStart = calculateWindowStart(timeMillis);
 
         /*
@@ -129,8 +164,10 @@ public abstract class LeapArray<T> {
          * (2) Bucket is up-to-date, then just return the bucket.
          * (3) Bucket is deprecated, then reset current bucket and clean all deprecated buckets.
          */
+        // 从数组中死循环查找当前的时间窗口，因为可能多个线程都在获取当前时间窗口
         while (true) {
             WindowWrap<T> old = array.get(idx);
+            // 一般是项目启动时，时间未到达一个周期，数组还没有存储满，没有到复用阶段，所以数组元素可能为空
             if (old == null) {
                 /*
                  *     B0       B1      B2    NULL      B4
@@ -144,7 +181,9 @@ public abstract class LeapArray<T> {
                  * then try to update circular array via a CAS operation. Only one thread can
                  * succeed to update, while other threads yield its time slice.
                  */
+                // 创建新的 bucket，并创建一个 bucket 包装器
                 WindowWrap<T> window = new WindowWrap<T>(windowLengthInMs, windowStart, newEmptyBucket(timeMillis));
+                // cas 写入，确保线程安全，期望数组下标的元素是空的，否则就不写入，而是复用
                 if (array.compareAndSet(idx, null, window)) {
                     // Successfully updated, return the created bucket.
                     return window;
@@ -153,6 +192,7 @@ public abstract class LeapArray<T> {
                     Thread.yield();
                 }
             } else if (windowStart == old.windowStart()) {
+                // 如果 WindowWrap 的 windowStart 正好是当前时间戳计算出的时间窗口的开始时间，则就是我们想要的 bucket
                 /*
                  *     B0       B1      B2     B3      B4
                  * ||_______|_______|_______|_______|_______||___
@@ -165,7 +205,7 @@ public abstract class LeapArray<T> {
                  * that means the time is within the bucket, so directly return the bucket.
                  */
                 return old;
-            } else if (windowStart > old.windowStart()) {
+            } else if (windowStart > old.windowStart()) { // 复用旧的 bucket
                 /*
                  *   (old)
                  *             B0       B1      B2    NULL      B4
@@ -186,6 +226,7 @@ public abstract class LeapArray<T> {
                 if (updateLock.tryLock()) {
                     try {
                         // Successfully get the update lock, now we reset the bucket.
+                        // 重置 bucket，并指定 bucket 的新时间窗口的开始时间
                         return resetWindowTo(old, windowStart);
                     } finally {
                         updateLock.unlock();
@@ -196,6 +237,8 @@ public abstract class LeapArray<T> {
                 }
             } else if (windowStart < old.windowStart()) {
                 // Should not go through here, as the provided time is already behind.
+                // 计算出来的当前 bucket 时间窗口的开始时间比数组当前存储的 bucket 的时间窗口开始时
+                // 直接返回一个空的 bucket 就行
                 return new WindowWrap<T>(windowLengthInMs, windowStart, newEmptyBucket(timeMillis));
             }
         }
@@ -203,6 +246,7 @@ public abstract class LeapArray<T> {
 
     /**
      * Get the previous bucket item before provided timestamp.
+     * 根据时间戳获取上一个时间窗口
      *
      * @param timeMillis a valid timestamp in milliseconds
      * @return the previous bucket item before provided timestamp

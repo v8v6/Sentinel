@@ -34,6 +34,7 @@ import com.alibaba.csp.sentinel.slots.nodeselector.NodeSelectorSlot;
  * This class may have a list of sub {@link DefaultNode}s. Child nodes will be created when
  * calling {@link SphU}#entry() or {@link SphO}@entry() multiple times in the same {@link Context}.
  * </p>
+ * 调用链树-叶子节点
  *
  * @author qinan.qn
  * @see NodeSelectorSlot

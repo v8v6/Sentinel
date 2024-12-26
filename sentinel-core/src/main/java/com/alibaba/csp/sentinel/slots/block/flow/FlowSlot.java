@@ -135,6 +135,7 @@ import java.util.Map;
  * </p>
  * </ol>
  *
+ * 根据预设的限流规则以及前面 slot 统计的状态，来进行流量控制
  * @author jialiang.linjl
  * @author Eric Zhao
  */

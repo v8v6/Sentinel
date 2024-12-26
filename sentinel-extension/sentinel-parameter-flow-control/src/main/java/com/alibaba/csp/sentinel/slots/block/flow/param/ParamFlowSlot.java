@@ -27,6 +27,8 @@ import java.util.List;
 /**
  * A processor slot that is responsible for flow control by frequent ("hot spot") parameters.
  *
+ * 热点参数限流
+ *
  * @author jialiang.linjl
  * @author Eric Zhao
  * @since 0.2.0

@@ -45,6 +45,8 @@ import com.alibaba.csp.sentinel.slots.block.BlockException;
  * </ul>
  * </p>
  *
+ * 记录、统计不同纬度的 runtime 指标监控信息
+ *
  * @author jialiang.linjl
  * @author Eric Zhao
  */
@@ -56,9 +58,12 @@ public class StatisticSlot extends AbstractLinkedProcessorSlot<DefaultNode> {
                       boolean prioritized, Object... args) throws Throwable {
         try {
             // Do some checking.
+            // 触发下一个Slot的entry方法
             fireEntry(context, resourceWrapper, node, count, prioritized, args);
 
             // Request passed, add thread count and pass count.
+            // 如果能通过SlotChain中后面的Slot的entry方法，说明没有被限流或降级
+            // 统计信息
             node.increaseThreadNum();
             node.addPassRequest(count);
 
