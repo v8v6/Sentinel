@@ -4,6 +4,12 @@ spring:
   application:
     name: spring-cloud-gateway
   cloud:
+    sentinel:
+      transport:
+        dashboard: localhost:9281
+        port: 8800
+      eager: true
+
     gateway:
       enabled: true
       discovery:

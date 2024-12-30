@@ -15,10 +15,9 @@
  */
 package com.alibaba.csp.sentinel.dashboard.controller.gateway;
 
-import com.alibaba.csp.sentinel.dashboard.auth.AuthorizationInterceptor;
-import com.alibaba.csp.sentinel.dashboard.auth.FakeAuthServiceImpl;
 import com.alibaba.csp.sentinel.dashboard.client.SentinelApiClient;
 import com.alibaba.csp.sentinel.dashboard.config.NoAuthConfigurationTest;
+import com.alibaba.csp.sentinel.dashboard.controller.v2.gateway.GatewayFlowRuleControllerV2;
 import com.alibaba.csp.sentinel.dashboard.datasource.entity.gateway.GatewayFlowRuleEntity;
 import com.alibaba.csp.sentinel.dashboard.datasource.entity.gateway.GatewayParamFlowItemEntity;
 import com.alibaba.csp.sentinel.dashboard.discovery.AppManagement;
@@ -59,14 +58,14 @@ import static org.junit.Assert.*;
 import static org.mockito.BDDMockito.*;
 
 /**
- * Test cases for {@link GatewayFlowRuleController}.
+ * Test cases for {@link GatewayFlowRuleControllerV2}.
  *
  * @author cdfive
  */
 @RunWith(SpringRunner.class)
-@WebMvcTest(GatewayFlowRuleController.class)
+@WebMvcTest(GatewayFlowRuleControllerV2.class)
 @Import({NoAuthConfigurationTest.class, InMemGatewayFlowRuleStore.class, AppManagement.class, SimpleMachineDiscovery.class})
-public class GatewayFlowRuleControllerTest {
+public class GatewayFlowRuleControllerV1Test {
 
     private static final String TEST_APP = "test_app";
 
